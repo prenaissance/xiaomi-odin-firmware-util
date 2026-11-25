@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 //! Safe parser for Qualcomm `/mnt/vendor/persist/wlan_mac.bin` and deterministic
 //! locally-administered fallback MAC generation for Xiaomi MIX 4 (`odin`).
 
@@ -38,11 +36,10 @@ impl MacAddr {
             if line.is_empty() || line.starts_with('#') {
                 continue;
             }
-            if let Some(rest) = line.strip_prefix("Intf0MacAddress=") {
-                if let Some(mac) = Self::parse_hex12(rest.trim()) {
+            if let Some(rest) = line.strip_prefix("Intf0MacAddress=")
+                && let Some(mac) = Self::parse_hex12(rest.trim()) {
                     return Some(mac);
                 }
-            }
         }
         None
     }
@@ -86,11 +83,10 @@ impl MacAddr {
 
     pub fn extract_serial_from_cmdline(cmdline: &str) -> Option<&str> {
         for tok in cmdline.split_whitespace() {
-            if let Some(val) = tok.strip_prefix("androidboot.serialno=") {
-                if !val.is_empty() {
+            if let Some(val) = tok.strip_prefix("androidboot.serialno=")
+                && !val.is_empty() {
                     return Some(val);
                 }
-            }
         }
         None
     }

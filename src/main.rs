@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 //! `xiaomi-odin-firmware-util`: Firmware extractor, NV MAC / Bluetooth BD_ADDR
 //! provisioner, and hardware status CLI for Xiaomi MIX 4 (`xiaomi-odin`, SM8350).
 
@@ -245,8 +243,8 @@ fn detect_live_wcn6855_subsys() -> Vec<(u16, u16)> {
         let p = ent.path();
         let vendor = read_trimmed(&p.join("vendor")).unwrap_or_default();
         let device = read_trimmed(&p.join("device")).unwrap_or_default();
-        if vendor.eq_ignore_ascii_case("0x17cb") && device.eq_ignore_ascii_case("0x1103") {
-            if let (Some(sv_s), Some(sd_s)) = (
+        if vendor.eq_ignore_ascii_case("0x17cb") && device.eq_ignore_ascii_case("0x1103")
+            && let (Some(sv_s), Some(sd_s)) = (
                 read_trimmed(&p.join("subsystem_vendor")),
                 read_trimmed(&p.join("subsystem_device")),
             ) {
@@ -256,7 +254,6 @@ fn detect_live_wcn6855_subsys() -> Vec<(u16, u16)> {
                     pairs.insert(0, (sv, sd));
                 }
             }
-        }
     }
     pairs
 }
@@ -461,11 +458,10 @@ fn provision_firmware(
 
     if include_ref_bdfs {
         let upstream_bd2_path = hw20.join("board-2.upstream.bin");
-        if let Ok(raw_up) = fs::read(&upstream_bd2_path) {
-            if let Ok(parsed_up) = Board2Bundle::parse(&raw_up) {
+        if let Ok(raw_up) = fs::read(&upstream_bd2_path)
+            && let Ok(parsed_up) = Board2Bundle::parse(&raw_up) {
                 boards.extend(parsed_up.boards);
             }
-        }
     }
 
     let bundle = Board2Bundle {
@@ -529,20 +525,18 @@ fn provision_firmware(
 fn sync_mac_address() -> Result<MacAddr, String> {
     let mut resolved_mac: Option<MacAddr> = None;
 
-    if let Some(persist_dev) = resolve_block_dev(DEFAULT_PERSIST_DEV, FALLBACK_PERSIST_DEV) {
-        if let Ok(persist_mnt) = RoMountGuard::mount_ro(&persist_dev, "ext4", "persist") {
+    if let Some(persist_dev) = resolve_block_dev(DEFAULT_PERSIST_DEV, FALLBACK_PERSIST_DEV)
+        && let Ok(persist_mnt) = RoMountGuard::mount_ro(&persist_dev, "ext4", "persist") {
             for rel in ["wlan_mac.bin", "wifi/wlan_mac.bin"] {
                 let p = persist_mnt.path().join(rel);
-                if let Ok(txt) = fs::read_to_string(&p) {
-                    if let Some(mac) = MacAddr::parse_wlan_mac_bin(&txt) {
+                if let Ok(txt) = fs::read_to_string(&p)
+                    && let Some(mac) = MacAddr::parse_wlan_mac_bin(&txt) {
                         println!("[xiaomi-odin-firmware-util] Read factory NV Wi-Fi MAC {mac} from persist/{rel}");
                         resolved_mac = Some(mac);
                         break;
                     }
-                }
             }
         }
-    }
 
     let mac = resolved_mac.unwrap_or_else(|| {
         let cmdline = fs::read_to_string("/proc/cmdline").unwrap_or_default();
@@ -903,11 +897,10 @@ fn provision_gpu_firmware(qcom_fw_root: &Path) -> Result<(), String> {
         }
     }
 
-    if let Ok(hap_bytes) = fs::read(fw_src.join("aw8697_haptic.bin")) {
-        if let Some(fw_base) = qcom_fw_root.parent() {
+    if let Ok(hap_bytes) = fs::read(fw_src.join("aw8697_haptic.bin"))
+        && let Some(fw_base) = qcom_fw_root.parent() {
             let _ = atomic_write(&fw_base.join("aw8697_haptic.bin"), &hap_bytes);
         }
-    }
     if let Some(fw_base) = qcom_fw_root.parent() {
         let cirrus_dir = fw_base.join("cirrus");
         let _ = copy_cirrus_files_from_dir(&fw_src, &cirrus_dir);
@@ -1064,29 +1057,27 @@ fn provision_slpi_and_sensors(qcom_fw_root: &Path, hexagon_root: &Path) -> Resul
     let cfg_backup_dir = hexagon_root.join("sensors/config.orig");
     let cfg_count = copy_dir_files(&sns_src.join("config"), &cfg_backup_dir, false, true)?;
 
-    if let Ok(hap_bytes) = fs::read(vendor_mnt.path().join("firmware/aw8697_haptic.bin")) {
-        if let Some(fw_base) = qcom_fw_root.parent() {
+    if let Ok(hap_bytes) = fs::read(vendor_mnt.path().join("firmware/aw8697_haptic.bin"))
+        && let Some(fw_base) = qcom_fw_root.parent() {
             let _ = atomic_write(&fw_base.join("aw8697_haptic.bin"), &hap_bytes);
         }
-    }
     drop(vendor_mnt);
     drop(mapper);
 
-    if let Some(dsp_dev) = resolve_block_dev(DEFAULT_DSP_DEV, FALLBACK_DSP_DEV) {
-        if let Ok(dsp_mnt) = RoMountGuard::mount_ro(&dsp_dev, "ext4", "dsp-slpi") {
+    if let Some(dsp_dev) = resolve_block_dev(DEFAULT_DSP_DEV, FALLBACK_DSP_DEV)
+        && let Ok(dsp_mnt) = RoMountGuard::mount_ro(&dsp_dev, "ext4", "dsp-slpi") {
             let sdsp_src = dsp_mnt.path().join("sdsp");
             if sdsp_src.is_dir() {
                 let _ = copy_dir_files(&sdsp_src, &hexagon_root.join("dsp/sdsp"), false, true);
             }
         }
-    }
 
     let reg_root = hexagon_root.join("sensors/registry");
     let reg_sub = reg_root.join("reg");
     let mut reg_count = 0usize;
     let mut have_reg_version = false;
-    if let Some(persist_dev) = resolve_block_dev(DEFAULT_PERSIST_DEV, FALLBACK_PERSIST_DEV) {
-        if let Ok(persist_mnt) = RoMountGuard::mount_ro(&persist_dev, "ext4", "persist-slpi") {
+    if let Some(persist_dev) = resolve_block_dev(DEFAULT_PERSIST_DEV, FALLBACK_PERSIST_DEV)
+        && let Ok(persist_mnt) = RoMountGuard::mount_ro(&persist_dev, "ext4", "persist-slpi") {
             let reg_src = persist_mnt.path().join("sensors/registry/registry");
             if reg_src.is_dir() {
                 reg_count = copy_dir_files(&reg_src, &reg_sub, false, false)?;
@@ -1096,7 +1087,6 @@ fn provision_slpi_and_sensors(qcom_fw_root: &Path, hexagon_root: &Path) -> Resul
                 have_reg_version = true;
             }
         }
-    }
     if !have_reg_version {
         atomic_write(&reg_root.join("sns_reg_version"), b"version=6\0")?;
     }
@@ -1224,14 +1214,13 @@ fn provision_cdsp_firmware(qcom_fw_root: &Path, hexagon_root: &Path) -> Result<(
 
     let cdsp_dst = hexagon_root.join("dsp/cdsp");
     let mut dsp_count = 0usize;
-    if let Some(dsp_dev) = resolve_block_dev(DEFAULT_DSP_DEV, FALLBACK_DSP_DEV) {
-        if let Ok(dsp_mnt) = RoMountGuard::mount_ro(&dsp_dev, "ext4", "dsp-cdsp") {
+    if let Some(dsp_dev) = resolve_block_dev(DEFAULT_DSP_DEV, FALLBACK_DSP_DEV)
+        && let Ok(dsp_mnt) = RoMountGuard::mount_ro(&dsp_dev, "ext4", "dsp-cdsp") {
             let cdsp_src = dsp_mnt.path().join("cdsp");
             if cdsp_src.is_dir() {
                 dsp_count = copy_dir_files(&cdsp_src, &cdsp_dst, false, true)?;
             }
         }
-    }
 
     let super_dev = resolve_block_dev(DEFAULT_SUPER_DEV, FALLBACK_SUPER_DEV)
         .ok_or_else(|| format!("super partition not found ({DEFAULT_SUPER_DEV} / {FALLBACK_SUPER_DEV})"))?;
@@ -1471,21 +1460,18 @@ fn main() -> ExitCode {
 
             ensure_udev_rules();
 
-            if !if_needed || !is_gpu_provisioned(&qcom_fw_root) || !Path::new("/lib/firmware/aw8697_haptic.bin").is_file() {
-                if let Err(e) = provision_gpu_firmware(&qcom_fw_root) {
+            if (!if_needed || !is_gpu_provisioned(&qcom_fw_root) || !Path::new("/lib/firmware/aw8697_haptic.bin").is_file())
+                && let Err(e) = provision_gpu_firmware(&qcom_fw_root) {
                     eprintln!("[xiaomi-odin-firmware-util] WARN: could not provision Adreno 660 firmware: {e}");
                 }
-            }
-            if !if_needed || !is_adsp_provisioned(&qcom_fw_root) {
-                if let Err(e) = provision_adsp_firmware(&qcom_fw_root) {
+            if (!if_needed || !is_adsp_provisioned(&qcom_fw_root))
+                && let Err(e) = provision_adsp_firmware(&qcom_fw_root) {
                     eprintln!("[xiaomi-odin-firmware-util] WARN: could not provision ADSP firmware: {e}");
                 }
-            }
-            if !if_needed || !is_slpi_provisioned(&qcom_fw_root, &hexagon_root) {
-                if let Err(e) = provision_slpi_and_sensors(&qcom_fw_root, &hexagon_root) {
+            if (!if_needed || !is_slpi_provisioned(&qcom_fw_root, &hexagon_root))
+                && let Err(e) = provision_slpi_and_sensors(&qcom_fw_root, &hexagon_root) {
                     eprintln!("[xiaomi-odin-firmware-util] WARN: could not provision SLPI/sensors firmware: {e}");
                 }
-            }
             if !if_needed || !is_cdsp_provisioned(&qcom_fw_root, &hexagon_root) {
                 if let Err(e) = provision_cdsp_firmware(&qcom_fw_root, &hexagon_root) {
                     eprintln!("[xiaomi-odin-firmware-util] WARN: could not provision CDSP firmware: {e}");
@@ -1493,16 +1479,14 @@ fn main() -> ExitCode {
             } else {
                 start_remoteproc_if_offline("cdsp");
             }
-            if !if_needed || !is_bt_provisioned(&qca_bt_root) {
-                if let Err(e) = provision_bt_firmware(&qca_bt_root) {
+            if (!if_needed || !is_bt_provisioned(&qca_bt_root))
+                && let Err(e) = provision_bt_firmware(&qca_bt_root) {
                     eprintln!("[xiaomi-odin-firmware-util] WARN: could not provision Bluetooth firmware: {e}");
                 }
-            }
-            if !if_needed || !is_cirrus_provisioned(&cirrus_fw_root) {
-                if let Err(e) = provision_cirrus_firmware(&cirrus_fw_root) {
+            if (!if_needed || !is_cirrus_provisioned(&cirrus_fw_root))
+                && let Err(e) = provision_cirrus_firmware(&cirrus_fw_root) {
                     eprintln!("[xiaomi-odin-firmware-util] WARN: could not provision Cirrus CS35L41 firmware: {e}");
                 }
-            }
 
             if if_needed && !include_ref_bdfs && is_already_provisioned(&fw_root) {
                 let mac = read_trimmed(Path::new(MAC_STATE_PATH))

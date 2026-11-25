@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 //! Pure-Rust Qualcomm Peripheral Image Loader (`.mdt` + `.b00`..`.bNN` -> `.mbn`) squasher.
 //!
 //! Converts split Qualcomm ELF32 firmware images stored on Android `modem_a` / `vendor_a`

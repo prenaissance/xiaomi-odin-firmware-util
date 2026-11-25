@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 //! Encoder, parser, and verifier for Qualcomm `QCA-ATH11K-BOARD` (`board-2.bin`)
 //! binary IE containers, matching `drivers/net/wireless/ath/ath11k/core.c`.
 
@@ -156,11 +154,10 @@ impl Board2Bundle {
                     rem: cur.len(),
                 });
             }
-            if ie_id == outer_ie_match {
-                if let Some(found) = kernel_parse_inner(&cur[..ie_len], ie_id, boardname)? {
+            if ie_id == outer_ie_match
+                && let Some(found) = kernel_parse_inner(&cur[..ie_len], ie_id, boardname)? {
                     return Ok(Some(found));
                 }
-            }
             cur = &cur[padded..];
         }
         Ok(None)

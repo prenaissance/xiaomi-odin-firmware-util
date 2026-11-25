@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
-
 //! Pure-Rust parser for Android `liblp` (`LpMetadata`) dynamic partitions inside `super`.
 //!
 //! Used on Xiaomi MIX 4 (`xiaomi-odin`, SM8350) to locate `vendor_a` inside
