@@ -55,8 +55,6 @@ jobs:
             cp "target/${target}/release/xiaomi-odin-firmware-util" "${out}"
             file "${out}"
           done
-          (cd dist && sha256sum xiaomi-odin-firmware-util-* > SHA256SUMS)
-          cat dist/SHA256SUMS
 
       - name: Create GitHub Release and attach binaries
         env:
