@@ -1,0 +1,71 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: Test & Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Run unit tests
+        run: cargo test --all-targets
+
+      - name: Run clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+  release:
+    name: Build & Publish Release Assets
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-gnu,aarch64-unknown-linux-musl
+
+      - name: Install aarch64 cross-toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu
+
+      - name: Build aarch64 glibc (GCC) and musl binaries
+        run: |
+          mkdir -p dist
+          for target in aarch64-unknown-linux-gnu aarch64-unknown-linux-musl; do
+            cargo build --release --target "${target}"
+            out="dist/xiaomi-odin-firmware-util-${target}"
+            cp "target/${target}/release/xiaomi-odin-firmware-util" "${out}"
+            file "${out}"
+          done
+          (cd dist && sha256sum xiaomi-odin-firmware-util-* > SHA256SUMS)
+          cat dist/SHA256SUMS
+
+      - name: Create GitHub Release and attach binaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" dist/* --clobber
+          else
+            gh release create "${GITHUB_REF_NAME}" dist/* \
+              --title "${GITHUB_REF_NAME}" \
+              --generate-notes
+          fi

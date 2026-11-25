@@ -13,7 +13,7 @@ jobs:
     name: Build, Clippy & Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -29,22 +29,28 @@ jobs:
         run: cargo build --release
 
   cross-aarch64:
-    name: Cross-build (aarch64-unknown-linux-musl)
+    name: Cross-build (${{ matrix.target }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - aarch64-unknown-linux-gnu
+          - aarch64-unknown-linux-musl
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-unknown-linux-musl
+          targets: ${{ matrix.target }}
 
-      - name: Install aarch64 linker
+      - name: Install aarch64 cross-toolchain
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu
 
-      - name: Cross-compile static aarch64 release binary
-        run: cargo build --release --target aarch64-unknown-linux-musl
+      - name: Cross-compile release binary
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Verify binary format
-        run: file target/aarch64-unknown-linux-musl/release/xiaomi-odin-firmware-util
+        run: file target/${{ matrix.target }}/release/xiaomi-odin-firmware-util
